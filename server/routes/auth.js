@@ -12,56 +12,35 @@ const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 };
 
+// Hardcoded Users for Production/Demo
+const USERS = [
+    {
+        _id: '1',
+        name: 'Admin User',
+        email: 'admin@sales.com',
+        password: 'password', // In real app, this would be hashed
+        role: 'manager',
+        countryCode: 'US',
+        avatar: 'https://ui-avatars.com/api/?name=Admin+User&background=random',
+        managerId: null
+    },
+    {
+        _id: '2',
+        name: 'Sales Rep',
+        email: 'user@sales.com',
+        password: 'password',
+        role: 'rep',
+        countryCode: 'US',
+        avatar: 'https://ui-avatars.com/api/?name=Sales+Rep&background=random',
+        managerId: '1'
+    }
+];
+
 // @route   POST /api/auth/register
-// @desc    Register a new user
+// @desc    Register a new user (DISABLED)
 // @access  Public
-router.post('/register', [
-    body('name').trim().notEmpty().withMessage('Name is required'),
-    body('email').isEmail().withMessage('Valid email is required'),
-    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-    body('countryCode').trim().notEmpty().withMessage('Country code is required')
-], async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ message: errors.array()[0].msg });
-    }
-
-    try {
-        const { name, email, password, countryCode } = req.body;
-
-        // Check if user exists
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res.status(400).json({ message: 'User with this email already exists' });
-        }
-
-        // Find a manager for this country
-        const manager = await User.findOne({ role: 'manager', countryCode: countryCode.toUpperCase() });
-
-        const user = await User.create({
-            name,
-            email,
-            password,
-            countryCode: countryCode.toUpperCase(),
-            role: 'rep',
-            managerId: manager ? manager._id : null
-        });
-
-        await logAudit(user._id, 'user_registered', 'user', user._id, { email });
-
-        res.status(201).json({
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            countryCode: user.countryCode,
-            avatar: user.avatar,
-            token: generateToken(user._id)
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Server error' });
-    }
+router.post('/register', (req, res) => {
+    res.status(403).json({ message: 'Registration is disabled in this demo version. Please use the provided credentials.' });
 });
 
 // @route   POST /api/auth/login
@@ -76,29 +55,23 @@ router.post('/login', [
         return res.status(400).json({ message: errors.array()[0].msg });
     }
 
+    const { email, password } = req.body;
+
+    // Hardcoded check
+    const user = USERS.find(u => u.email === email && u.password === password);
+
+    if (!user) {
+        return res.status(401).json({ message: 'Invalid credentials. Try admin@sales.com / password' });
+    }
+
     try {
-        const { email, password } = req.body;
-
-        const user = await User.findOne({ email }).select('+password');
-        if (!user) {
-            return res.status(401).json({ message: 'Invalid credentials' });
-        }
-
-        const isMatch = await user.comparePassword(password);
-        if (!isMatch) {
-            return res.status(401).json({ message: 'Invalid credentials' });
-        }
-
         await logAudit(user._id, 'user_login', 'user', user._id);
 
+        // Remove password from response
+        const { password: _, ...userWithoutPassword } = user;
+
         res.json({
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            countryCode: user.countryCode,
-            avatar: user.avatar,
-            managerId: user.managerId,
+            ...userWithoutPassword,
             token: generateToken(user._id)
         });
     } catch (err) {
@@ -112,8 +85,11 @@ router.post('/login', [
 // @access  Private
 router.get('/me', protect, async (req, res) => {
     try {
-        const user = await User.findById(req.user._id).populate('managerId', 'name email');
-        res.json(user);
+        // req.user is already set by protect middleware
+        if (!req.user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.json(req.user);
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Server error' });

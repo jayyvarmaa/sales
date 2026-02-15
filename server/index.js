@@ -79,7 +79,16 @@ const startServer = async () => {
         }
     } catch (err) {
         console.error('❌ MongoDB connection failed:', err.message);
-        process.exit(1);
+        console.log('⚠️  Starting server without database (some features may be limited)');
+
+        // Still start the server even if DB fails
+        if (require.main === module) {
+            server.listen(PORT, () => {
+                console.log(`🚀 Server running on port ${PORT} (No DB Mode)`);
+            });
+        }
+        // Do NOT exit process
+        // process.exit(1); 
     }
 };
 
