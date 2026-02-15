@@ -63,7 +63,9 @@ const Team = () => {
                                 <tr key={u._id}>
                                     <td>
                                         <div className="user-cell">
-                                            <div className="avatar">{u.avatar}</div>
+                                            <div className="avatar">
+                                                <img src={u.avatar} alt={u.name} />
+                                            </div>
                                             <span style={{ fontWeight: 500 }}>{u.name}</span>
                                         </div>
                                     </td>

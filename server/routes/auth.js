@@ -12,29 +12,7 @@ const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 };
 
-// Hardcoded Users for Production/Demo
-const USERS = [
-    {
-        _id: '1',
-        name: 'Admin User',
-        email: 'admin@sales.com',
-        password: 'password', // In real app, this would be hashed
-        role: 'manager',
-        countryCode: 'US',
-        avatar: 'https://ui-avatars.com/api/?name=Admin+User&background=random',
-        managerId: null
-    },
-    {
-        _id: '2',
-        name: 'Sales Rep',
-        email: 'user@sales.com',
-        password: 'password',
-        role: 'rep',
-        countryCode: 'US',
-        avatar: 'https://ui-avatars.com/api/?name=Sales+Rep&background=random',
-        managerId: '1'
-    }
-];
+const USERS = require('../data/users');
 
 // @route   POST /api/auth/register
 // @desc    Register a new user (DISABLED)
@@ -61,7 +39,7 @@ router.post('/login', [
     const user = USERS.find(u => u.email === email && u.password === password);
 
     if (!user) {
-        return res.status(401).json({ message: 'Invalid credentials. Try admin@sales.com / password' });
+        return res.status(401).json({ message: 'Invalid credentials. Try master@salesportal.com / password123' });
     }
 
     try {

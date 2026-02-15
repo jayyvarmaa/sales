@@ -107,7 +107,7 @@ const LeadBoard = ({ leads, onUpdate }) => {
                                 </div>
                                 <div className="kanban-card-footer">
                                     <div className="avatar avatar-xs" title={lead.createdBy?.name}>
-                                        {lead.createdBy?.avatar || '?'}
+                                        <img src={lead.createdBy?.avatar} alt={lead.createdBy?.name} />
                                     </div>
                                     <span style={{ fontSize: '10px' }}>{timeAgo(lead.createdAt)}</span>
                                 </div>

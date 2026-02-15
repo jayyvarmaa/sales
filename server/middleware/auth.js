@@ -1,25 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-// Hardcoded Users (Must match auth routes)
-const USERS = [
-    {
-        _id: '1',
-        name: 'Admin User',
-        email: 'admin@sales.com',
-        role: 'manager',
-        countryCode: 'US',
-        managerId: null
-    },
-    {
-        _id: '2',
-        name: 'Sales Rep',
-        email: 'user@sales.com',
-        role: 'rep',
-        countryCode: 'US',
-        managerId: '1'
-    }
-];
+const USERS = require('../data/users');
 
 // Protect routes - verify JWT token
 const protect = async (req, res, next) => {

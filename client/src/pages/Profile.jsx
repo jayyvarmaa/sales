@@ -69,7 +69,9 @@ const Profile = () => {
                     </div>
                     <div className="card-body">
                         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-5)', marginBottom: 'var(--space-6)' }}>
-                            <div className="avatar avatar-xl">{user.avatar}</div>
+                            <div className="avatar avatar-xl">
+                                <img src={user.avatar} alt={user.name} />
+                            </div>
                             <div>
                                 <h2 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 600 }}>{user.name}</h2>
                                 <div style={{ display: 'flex', gap: 'var(--space-3)', color: 'var(--color-text-secondary)', marginTop: 'var(--space-1)' }}>

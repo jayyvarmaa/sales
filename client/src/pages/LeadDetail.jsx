@@ -168,7 +168,9 @@ const LeadDetail = () => {
                         <div className="comment-thread">
                             {lead.comments.map((c, i) => (
                                 <div key={i} className="comment-item">
-                                    <div className="avatar avatar-sm">{c.user?.avatar || '?'}</div>
+                                    <div className="avatar avatar-sm">
+                                        {c.user?.avatar ? <img src={c.user.avatar} alt={c.user.name} /> : '?'}
+                                    </div>
                                     <div className="comment-body">
                                         <div className="comment-header">
                                             <span className="comment-author">{c.user?.name || 'Unknown'}</span>
@@ -220,7 +222,9 @@ const LeadDetail = () => {
 
                     {/* Add Comment Form */}
                     <form className="comment-form" onSubmit={handleAddComment}>
-                        <div className="avatar avatar-sm">{user.avatar}</div>
+                        <div className="avatar avatar-sm">
+                            <img src={user.avatar} alt={user.name} />
+                        </div>
                         <div className="comment-form-body">
                             <textarea
                                 className="textarea"
@@ -255,7 +259,9 @@ const LeadDetail = () => {
                         <div>
                             <div className="sidebar-section-title">Reviewer</div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--font-size-md)' }}>
-                                <div className="avatar avatar-sm">{lead.reviewedBy.avatar}</div>
+                                <div className="avatar avatar-sm">
+                                    <img src={lead.reviewedBy.avatar} alt={lead.reviewedBy.name} />
+                                </div>
                                 {lead.reviewedBy.name}
                             </div>
                             {lead.reviewedAt && (
@@ -269,7 +275,9 @@ const LeadDetail = () => {
                     <div>
                         <div className="sidebar-section-title">Assignee</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--font-size-md)' }}>
-                            <div className="avatar avatar-sm">{lead.createdBy?.avatar}</div>
+                            <div className="avatar avatar-sm">
+                                <img src={lead.createdBy?.avatar} alt={lead.createdBy?.name} />
+                            </div>
                             {lead.createdBy?.name}
                         </div>
                     </div>

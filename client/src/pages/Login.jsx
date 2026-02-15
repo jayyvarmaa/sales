@@ -75,11 +75,31 @@ const Login = () => {
                     New to SalesHub? <Link to="/register">Create an account</Link>
                 </div>
 
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: '1rem' }}>
-                    <p>Demo: <code>master@salesportal.com</code> / <code>password123</code></p>
-                    <p style={{ marginTop: 4 }}>
-                        Reps: <code>sarah@salesportal.com</code> • Managers: <code>kodi@salesportal.com</code>
-                    </p>
+                <div className="demo-credentials fade-in-delay-2">
+                    <h3>Demo Credentials</h3>
+                    <div className="credentials-grid">
+                        <div className="credential-item">
+                            <span className="role">Master Admin</span>
+                            <code>master@salesportal.com</code>
+                        </div>
+                        <div className="credential-item">
+                            <span className="role">Manager (US)</span>
+                            <code>kodi@salesportal.com</code>
+                        </div>
+                        <div className="credential-item">
+                            <span className="role">Rep (US)</span>
+                            <code>sarah@salesportal.com</code>
+                        </div>
+                        <div className="credential-item">
+                            <span className="role">Manager (CN)</span>
+                            <code>wei@salesportal.com</code>
+                        </div>
+                        <div className="credential-item">
+                            <span className="role">Manager (IN)</span>
+                            <code>priya@salesportal.com</code>
+                        </div>
+                    </div>
+                    <p className="password-hint">Password for all accounts: <strong>password123</strong></p>
                 </div>
             </div>
         </div>

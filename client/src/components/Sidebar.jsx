@@ -107,7 +107,9 @@ const Sidebar = ({ pendingCount = 0, isOpen, onClose }) => {
                 </nav>
 
                 <div className="sidebar-user">
-                    <div className="avatar">{user?.avatar}</div>
+                    <div className="avatar">
+                        <img src={user?.avatar} alt={user?.name} />
+                    </div>
                     <div className="sidebar-user-info">
                         <div className="name">{user?.name}</div>
                         <div className="role">
