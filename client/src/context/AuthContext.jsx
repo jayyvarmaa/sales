@@ -45,7 +45,11 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         if (user) {
             // In production, use window.location.origin or env var
-            const newSocket = io('http://localhost:5000');
+            const socketUrl = import.meta.env.PROD ? window.location.origin : 'http://localhost:5000';
+            const newSocket = io(socketUrl, {
+                path: '/socket.io/',
+                transports: ['polling'] // Force polling for Vercel serverless compatibility
+            });
             setSocket(newSocket);
 
             newSocket.on('connect', () => {

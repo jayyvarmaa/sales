@@ -16,8 +16,9 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "*",
-        methods: ["GET", "POST", "PUT", "DELETE"]
+        origin: ["http://localhost:5173", "http://localhost:5000", "https://sales.jayvarma.site"],
+        methods: ["GET", "POST", "PUT", "DELETE"],
+        credentials: true
     }
 });
 
@@ -62,17 +63,27 @@ app.get('/api/health', (req, res) => {
 });
 
 // Connect to MongoDB and start server
+// Connect to MongoDB and start server
 const PORT = process.env.PORT || 5000;
 
-mongoose
-    .connect(process.env.MONGO_URI)
-    .then(() => {
+const startServer = async () => {
+    try {
+        await mongoose.connect(process.env.MONGO_URI);
         console.log('✅ MongoDB connected');
-        server.listen(PORT, () => { // Changed app is listen to server.listen
-            console.log(`🚀 Server running on port ${PORT}`);
-        });
-    })
-    .catch((err) => {
+
+        // Only listen if not running in Vercel environment
+        if (require.main === module) {
+            server.listen(PORT, () => {
+                console.log(`🚀 Server running on port ${PORT}`);
+            });
+        }
+    } catch (err) {
         console.error('❌ MongoDB connection failed:', err.message);
         process.exit(1);
-    });
+    }
+};
+
+startServer();
+
+// Export the app for Vercel
+module.exports = app;
