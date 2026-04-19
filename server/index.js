@@ -56,6 +56,9 @@ app.use((req, res, next) => {
     next();
 });
 
+// Trust proxy is required for secure cookies on Vercel/proxies
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(cors({
     origin: allowedOrigins,
@@ -64,23 +67,31 @@ app.use(cors({
 app.use(express.json());
 
 // Session Configuration
-app.use(
-    session({
-        secret: process.env.SESSION_SECRET || 'sales-portal-secret',
-        resave: false,
-        saveUninitialized: false,
-        store: MongoStore.create({
-            mongoUrl: process.env.MONGO_URI,
-            collectionName: 'sessions'
-        }),
-        cookie: {
-            secure: process.env.NODE_ENV === 'production', 
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', 
-            httpOnly: true,
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-        }
-    })
-);
+const sessionConfig = {
+    name: 'sales_portal_session',
+    secret: process.env.SESSION_SECRET || 'sales-portal-secret',
+    resave: false,
+    saveUninitialized: false,
+    proxy: true, // Required for secure cookies behind Vercel proxy
+    cookie: {
+        secure: true, 
+        sameSite: 'none', 
+        domain: '.jayvarma.site', // Shares cookie across your subdomains
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    }
+};
+
+// Use existing Mongoose connection for Session Store (more stable on Vercel)
+if (process.env.MONGO_URI) {
+    sessionConfig.store = MongoStore.create({
+        client: mongoose.connection.getClient(),
+        collectionName: 'sessions',
+        stringify: false
+    });
+}
+
+app.use(session(sessionConfig));
 
 // Auth Profile endpoint for session check
 app.get('/api/auth/profile', (req, res) => {
@@ -111,33 +122,28 @@ app.get('/api/health', (req, res) => {
 // Connect to MongoDB and start server
 const PORT = process.env.PORT || 5000;
 
-const startServer = async () => {
+// Database connection logic
+const connectDB = async () => {
+    if (mongoose.connection.readyState >= 1) return;
+
     try {
         await mongoose.connect(process.env.MONGO_URI);
         console.log('✅ MongoDB connected');
-
-        // Only listen if not running in Vercel environment
-        if (require.main === module) {
-            server.listen(PORT, () => {
-                console.log(`🚀 Server running on port ${PORT}`);
-            });
-        }
     } catch (err) {
         console.error('❌ MongoDB connection failed:', err.message);
-        console.log('⚠️  Starting server without database (some features may be limited)');
-
-        // Still start the server even if DB fails
-        if (require.main === module) {
-            server.listen(PORT, () => {
-                console.log(`🚀 Server running on port ${PORT} (No DB Mode)`);
-            });
-        }
-        // Do NOT exit process
-        // process.exit(1); 
     }
 };
 
-startServer();
+// Initial connection attempt
+connectDB();
+
+const PORT = process.env.PORT || 5000;
+
+if (require.main === module) {
+    server.listen(PORT, () => {
+        console.log(`🚀 Server running on port ${PORT}`);
+    });
+}
 
 // Export the app for Vercel
 module.exports = app;

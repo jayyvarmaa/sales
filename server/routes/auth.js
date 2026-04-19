@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 const { logAudit } = require('../middleware/audit');
@@ -21,6 +22,11 @@ router.post('/register', [
     }
 
     const { name, email, password, countryCode } = req.body;
+
+    // Database connection check
+    if (mongoose.connection.readyState === 0) {
+        return res.status(503).json({ message: 'Database connecting... please refresh.' });
+    }
 
     try {
         let user = await User.findOne({ email });
@@ -57,6 +63,11 @@ router.post('/login', [
 
     const { email, password } = req.body;
 
+    // Database connection check
+    if (mongoose.connection.readyState === 0) {
+        return res.status(503).json({ message: 'Database connecting... please refresh.' });
+    }
+
     try {
         const user = await User.findOne({ email }).select('+password');
 
@@ -69,13 +80,18 @@ router.post('/login', [
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
+        if (!req.session) {
+            console.error('Session middleware not initialized!');
+            return res.status(500).json({ message: 'Session error. Check server configuration.' });
+        }
+
         await logAudit(user._id, 'user_login', 'user', user._id);
 
         req.session.userId = user._id;
         res.json(user);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Server error' });
+        console.error('Login Error:', err);
+        res.status(500).json({ message: 'Internal server error during login' });
     }
 });
 
