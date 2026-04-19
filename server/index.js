@@ -15,7 +15,6 @@ const notificationRoutes = require('./routes/notifications');
 const searchRoutes = require('./routes/search'); // Add this
 
 const app = express();
-const server = http.createServer(app);
 
 // Dynamic CORS origin based on environment
 const allowedOrigins = [
@@ -25,36 +24,46 @@ const allowedOrigins = [
     "https://sales-backend.jayvarma.site"
 ].filter(Boolean);
 
-const io = new Server(server, {
-    cors: {
-        origin: allowedOrigins,
-        methods: ["GET", "POST", "PUT", "DELETE"],
-        credentials: true
-    }
-});
-
-// Socket.io connection handler
-io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
-
-    // Join room based on user ID for private notifications
-    socket.on('join', (userId) => {
-        if (userId) {
-            socket.join(userId);
-            console.log(`User ${userId} joined room`);
+// Socket.io initialization (Disabled for Vercel Serverless, enabled for local dev)
+let io;
+if (require.main === module) {
+    const server = http.createServer(app);
+    io = new Server(server, {
+        cors: {
+            origin: allowedOrigins,
+            methods: ["GET", "POST", "PUT", "DELETE"],
+            credentials: true
         }
     });
 
-    socket.on('disconnect', () => {
-        console.log('User disconnected:', socket.id);
+    // Socket.io connection handler
+    io.on('connection', (socket) => {
+        console.log('User connected:', socket.id);
+        socket.on('join', (userId) => {
+            if (userId) socket.join(userId);
+        });
+        socket.on('disconnect', () => {
+            console.log('User disconnected:', socket.id);
+        });
     });
-});
 
-// Middleware to attach io to req
-app.use((req, res, next) => {
-    req.io = io;
-    next();
-});
+    // Middleware to attach io to req (limited functionality on Vercel)
+    app.use((req, res, next) => {
+        req.io = io;
+        next();
+    });
+
+    const PORT = process.env.PORT || 5000;
+    server.listen(PORT, () => {
+        console.log(`🚀 Local Server running on port ${PORT}`);
+    });
+} else {
+    // Vercel environment: Attach a mock io to prevent crashes in routes
+    app.use((req, res, next) => {
+        req.io = { emit: () => {} };
+        next();
+    });
+}
 
 // Trust proxy is required for secure cookies on Vercel/proxies
 app.set('trust proxy', 1);
@@ -72,22 +81,21 @@ const sessionConfig = {
     secret: process.env.SESSION_SECRET || 'sales-portal-secret',
     resave: false,
     saveUninitialized: false,
-    proxy: true, // Required for secure cookies behind Vercel proxy
+    proxy: true,
     cookie: {
         secure: true, 
         sameSite: 'none', 
-        domain: '.jayvarma.site', // Shares cookie across your subdomains
+        domain: '.jayvarma.site',
         httpOnly: true,
         maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     }
 };
 
-// Use existing Mongoose connection for Session Store (more stable on Vercel)
+// Use mongoUrl for Session Store to avoid connection timing issues on Vercel
 if (process.env.MONGO_URI) {
     sessionConfig.store = MongoStore.create({
-        client: mongoose.connection.getClient(),
-        collectionName: 'sessions',
-        stringify: false
+        mongoUrl: process.env.MONGO_URI,
+        collectionName: 'sessions'
     });
 }
 
@@ -113,14 +121,23 @@ app.use('/api/audit', auditRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/search', searchRoutes); // Add this
 
-// Health check
+// Health check & Root route
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Connect to MongoDB and start server
-// Connect to MongoDB and start server
-const PORT = process.env.PORT || 5000;
+app.get('/', (req, res) => {
+    res.send('Sales Portal API is running...');
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+    console.error('SERVER ERROR:', err);
+    res.status(500).json({ 
+        message: 'Internal Server Error',
+        error: process.env.NODE_ENV === 'production' ? {} : err.message
+    });
+});
 
 // Database connection logic
 const connectDB = async () => {
@@ -136,14 +153,6 @@ const connectDB = async () => {
 
 // Initial connection attempt
 connectDB();
-
-const PORT = process.env.PORT || 5000;
-
-if (require.main === module) {
-    server.listen(PORT, () => {
-        console.log(`🚀 Server running on port ${PORT}`);
-    });
-}
 
 // Export the app for Vercel
 module.exports = app;
