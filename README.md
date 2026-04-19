@@ -128,7 +128,7 @@ It features a custom-built **Session-based Authentication** system (replacing JW
 
 The project is optimized for deployment on **Vercel** with the following production domains:
 
-- **Frontend**: [sales.jayvarma.site](https://sales.jayvarma.site)
+- **Frontend**: [sales.jayvarma.site](https://sales.jayvarma.site/login)
 - **Backend API**: [sales-backend.jayvarma.site](https://sales-backend.jayvarma.site)
 
 ### Serverless Stability
