@@ -19,41 +19,39 @@ export const AuthProvider = ({ children }) => {
     const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        const savedUser = localStorage.getItem('user');
-        if (token && savedUser) {
-            const parsedUser = JSON.parse(savedUser);
-            setUser(parsedUser);
-            // Verify token is still valid
-            api.get('/auth/me')
-                .then(res => {
-                    setUser(res.data);
-                    localStorage.setItem('user', JSON.stringify(res.data));
-                })
-                .catch(() => {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('user');
-                    setUser(null);
-                })
-                .finally(() => setLoading(false));
-        } else {
-            setLoading(false);
-        }
+        const verifySession = async () => {
+            try {
+                // Check if session exists on backend
+                const res = await api.get('/auth/profile');
+                if (res.data.isAuthenticated) {
+                    // Fetch full user data
+                    const meRes = await api.get('/auth/me');
+                    setUser(meRes.data);
+                    localStorage.setItem('user', JSON.stringify(meRes.data));
+                }
+            } catch (err) {
+                // No session or error
+                localStorage.removeItem('user');
+                setUser(null);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        verifySession();
     }, []);
 
     // Socket & Notifications
     useEffect(() => {
         if (user) {
-            // In production, use window.location.origin or env var
             const socketUrl = import.meta.env.PROD ? window.location.origin : 'http://localhost:5000';
             const newSocket = io(socketUrl, {
                 path: '/socket.io/',
-                transports: ['polling'] // Force polling for Vercel serverless compatibility
+                transports: ['polling']
             });
             setSocket(newSocket);
 
             newSocket.on('connect', () => {
-                console.log('Socket connected');
                 newSocket.emit('join', user._id);
             });
 
@@ -66,7 +64,6 @@ export const AuthProvider = ({ children }) => {
                 });
             });
 
-            // Fetch initial notifications
             api.get('/notifications').then(res => {
                 setNotifications(res.data.notifications);
                 setUnreadCount(res.data.unreadCount);
@@ -74,7 +71,7 @@ export const AuthProvider = ({ children }) => {
 
             return () => newSocket.close();
         }
-    }, [user?._id]); // Re-run only if user ID changes (login)
+    }, [user?._id]);
 
     const markRead = async (id) => {
         try {
@@ -98,8 +95,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         const res = await api.post('/auth/login', { email, password });
-        const { token, ...userData } = res.data;
-        localStorage.setItem('token', token);
+        const userData = res.data;
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
         return userData;
@@ -107,17 +103,21 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (name, email, password, countryCode) => {
         const res = await api.post('/auth/register', { name, email, password, countryCode });
-        const { token, ...userData } = res.data;
-        localStorage.setItem('token', token);
+        const userData = res.data;
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
         return userData;
     };
 
-    const logout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setUser(null);
+    const logout = async () => {
+        try {
+            await api.post('/auth/logout');
+        } catch (err) {
+            console.error('Logout error:', err);
+        } finally {
+            localStorage.removeItem('user');
+            setUser(null);
+        }
     };
 
     // Theme Management

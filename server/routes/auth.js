@@ -1,28 +1,50 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
-const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 const { logAudit } = require('../middleware/audit');
+const { body, validationResult } = require('express-validator');
 
 const router = express.Router();
 
-// Generate JWT
-const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-};
-
-const USERS = require('../data/users');
-
 // @route   POST /api/auth/register
-// @desc    Register a new user (DISABLED)
+// @desc    Register a new user
 // @access  Public
-router.post('/register', (req, res) => {
-    res.status(403).json({ message: 'Registration is disabled in this demo version. Please use the provided credentials.' });
+router.post('/register', [
+    body('name').notEmpty().withMessage('Name is required'),
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    body('countryCode').notEmpty().withMessage('Country code is required')
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ message: errors.array()[0].msg });
+    }
+
+    const { name, email, password, countryCode } = req.body;
+
+    try {
+        let user = await User.findOne({ email });
+        if (user) {
+            return res.status(400).json({ message: 'User already exists' });
+        }
+
+        user = await User.create({
+            name,
+            email,
+            password,
+            countryCode
+        });
+
+        req.session.userId = user._id;
+        res.status(201).json(user);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
+    }
 });
 
 // @route   POST /api/auth/login
-// @desc    Login user & return token
+// @desc    Login user & start session
 // @access  Public
 router.post('/login', [
     body('email').isEmail().withMessage('Valid email is required'),
@@ -35,43 +57,46 @@ router.post('/login', [
 
     const { email, password } = req.body;
 
-    // Hardcoded check
-    const user = USERS.find(u => u.email === email && u.password === password);
-
-    if (!user) {
-        return res.status(401).json({ message: 'Invalid credentials. Try master@salesportal.com / password123' });
-    }
-
     try {
+        const user = await User.findOne({ email }).select('+password');
+
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+
+        const isMatch = await user.comparePassword(password);
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+
         await logAudit(user._id, 'user_login', 'user', user._id);
 
-        // Remove password from response
-        const { password: _, ...userWithoutPassword } = user;
-
-        res.json({
-            ...userWithoutPassword,
-            token: generateToken(user._id)
-        });
+        req.session.userId = user._id;
+        res.json(user);
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Server error' });
     }
 });
 
+// @route   POST /api/auth/logout
+// @desc    Logout user & destroy session
+// @access  Private
+router.post('/logout', protect, (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
+            return res.status(500).json({ message: 'Could not log out' });
+        }
+        res.clearCookie('connect.sid'); // Default session cookie name
+        res.json({ message: 'Logged out successfully' });
+    });
+});
+
 // @route   GET /api/auth/me
 // @desc    Get current user
 // @access  Private
 router.get('/me', protect, async (req, res) => {
-    try {
-        // req.user is already set by protect middleware
-        if (!req.user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-        res.json(req.user);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Server error' });
-    }
+    res.json(req.user);
 });
 
 module.exports = router;

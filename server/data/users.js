@@ -1,7 +1,7 @@
 const USERS = [
     // Master Admin
     {
-        _id: '1',
+        _id: '64e6b2e5a7b3e8c9d1e2f3a0',
         name: 'Alex Chen',
         email: 'master@salesportal.com',
         password: 'password123',
@@ -12,7 +12,7 @@ const USERS = [
     },
     // US Manager (Kodi)
     {
-        _id: '2',
+        _id: '64e6b2e5a7b3e8c9d1e2f3a1',
         name: 'Kodi Williams',
         email: 'kodi@salesportal.com',
         password: 'password123',
@@ -23,18 +23,18 @@ const USERS = [
     },
     // US Rep (Sarah) - Reports to Kodi
     {
-        _id: '3',
+        _id: '64e6b2e5a7b3e8c9d1e2f3a2',
         name: 'Sarah Johnson',
         email: 'sarah@salesportal.com',
         password: 'password123',
         role: 'rep',
         countryCode: 'US',
         avatar: 'https://ui-avatars.com/api/?name=Sarah+Johnson&background=random',
-        managerId: '2'
+        managerId: '64e6b2e5a7b3e8c9d1e2f3a1'
     },
     // CN Manager
     {
-        _id: '4',
+        _id: '64e6b2e5a7b3e8c9d1e2f3a3',
         name: 'Wei Zhang',
         email: 'wei@salesportal.com',
         password: 'password123',
@@ -45,7 +45,7 @@ const USERS = [
     },
     // IN Manager
     {
-        _id: '5',
+        _id: '64e6b2e5a7b3e8c9d1e2f3a4',
         name: 'Priya Sharma',
         email: 'priya@salesportal.com',
         password: 'password123',

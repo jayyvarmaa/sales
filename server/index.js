@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require("socket.io");
+const session = require('express-session');
+const { MongoStore } = require('connect-mongo');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
@@ -14,9 +16,18 @@ const searchRoutes = require('./routes/search'); // Add this
 
 const app = express();
 const server = http.createServer(app);
+
+// Dynamic CORS origin based on environment
+const allowedOrigins = [
+    "http://localhost:5173", 
+    process.env.FRONTEND_URL,
+    "https://sales.jayvarma.site",
+    "https://sales-backend.jayvarma.site"
+].filter(Boolean);
+
 const io = new Server(server, {
     cors: {
-        origin: ["http://localhost:5173", "http://localhost:5000", "https://sales.jayvarma.site"],
+        origin: allowedOrigins,
         methods: ["GET", "POST", "PUT", "DELETE"],
         credentials: true
     }
@@ -46,8 +57,42 @@ app.use((req, res, next) => {
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true
+}));
 app.use(express.json());
+
+// Session Configuration
+app.use(
+    session({
+        secret: process.env.SESSION_SECRET || 'sales-portal-secret',
+        resave: false,
+        saveUninitialized: false,
+        store: MongoStore.create({
+            mongoUrl: process.env.MONGO_URI,
+            collectionName: 'sessions'
+        }),
+        cookie: {
+            secure: process.env.NODE_ENV === 'production', 
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', 
+            httpOnly: true,
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        }
+    })
+);
+
+// Auth Profile endpoint for session check
+app.get('/api/auth/profile', (req, res) => {
+    if (req.session && req.session.userId) {
+        res.json({
+            isAuthenticated: true,
+            userId: req.session.userId
+        });
+    } else {
+        res.status(401).json({ isAuthenticated: false });
+    }
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
